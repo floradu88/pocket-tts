@@ -14,10 +14,60 @@ from __future__ import annotations
 import logging
 
 from mcp.server.fastmcp import FastMCP
+from pydantic import BaseModel
 
 from pocket_tts.romanian import runtime
 
 logger = logging.getLogger(__name__)
+
+
+class SpeechResult(BaseModel):
+    """Result of a Romanian TTS generation."""
+
+    filename: str
+    path: str
+    url: str | None = None
+    engine_used: str
+    sample_rate: int
+    duration_s: float
+    cache_key: str
+    cached: bool
+
+
+class EngineStatus(BaseModel):
+    role: str
+    loaded: bool
+
+
+class CacheStats(BaseModel):
+    enabled: bool
+    entries: int
+
+
+class EnginesResult(BaseModel):
+    default_engine: str
+    cache: CacheStats
+    queue_depth: int
+    engines: dict[str, EngineStatus]
+
+
+class VoicesResult(BaseModel):
+    xtts_speakers: list[str]
+    xtts_loaded: bool
+    note: str
+
+
+def _to_speech_result(result: dict) -> SpeechResult:
+    return SpeechResult(
+        filename=result["filename"],
+        path=result["path"],
+        url=result.get("url"),
+        engine_used=result["engine_used"],
+        sample_rate=result["sample_rate"],
+        duration_s=result["duration_s"],
+        cache_key=result["cache_key"],
+        cached=result["cached"],
+    )
 
 # stateless_http keeps each tool call independent (no persistent SSE session needed), which
 # makes mounting into FastAPI simple. streamable_http_path="/" so that mounting the app at
@@ -36,34 +86,34 @@ mcp = FastMCP(
 
 
 @mcp.tool()
-def list_engines() -> dict:
+def list_engines() -> EnginesResult:
     """List Romanian TTS engines, load status, cache stats and queue depth."""
-    return {
-        "default_engine": runtime.DEFAULT_ENGINE,
-        "cache": runtime.cache_stats(),
-        "queue_depth": runtime.queue_depth(),
-        "engines": {
-            name: {
-                "role": "primary" if name == "xtts" else "secondary",
-                "loaded": engine.is_loaded,
-            }
+    stats = runtime.cache_stats()
+    return EnginesResult(
+        default_engine=runtime.DEFAULT_ENGINE,
+        cache=CacheStats(enabled=stats["enabled"], entries=stats["entries"]),
+        queue_depth=runtime.queue_depth(),
+        engines={
+            name: EngineStatus(
+                role="primary" if name == "xtts" else "secondary", loaded=engine.is_loaded
+            )
             for name, engine in runtime.ENGINES.items()
         },
-    }
+    )
 
 
 @mcp.tool()
-def list_voices() -> dict:
+def list_voices() -> VoicesResult:
     """List built-in XTTS Romanian speaker ids (available once the XTTS model is loaded)."""
     speakers = runtime.xtts_engine.available_speakers() if runtime.xtts_engine.is_loaded else []
-    return {
-        "xtts_speakers": speakers,
-        "xtts_loaded": runtime.xtts_engine.is_loaded,
-        "note": (
+    return VoicesResult(
+        xtts_speakers=speakers,
+        xtts_loaded=runtime.xtts_engine.is_loaded,
+        note=(
             "If the list is empty, speakers appear after the first XTTS generation. For the "
             "pocket engine, use a predefined voice name such as 'giovanni'."
         ),
-    }
+    )
 
 
 @mcp.tool()
@@ -72,7 +122,7 @@ def generate_romanian_speech(
     engine: str = "auto",
     voice: str | None = None,
     filename: str | None = None,
-) -> dict:
+) -> SpeechResult:
     """Generate Romanian speech and save it as a WAV file.
 
     Args:
@@ -94,7 +144,7 @@ def generate_romanian_speech(
     if engine not in runtime.VALID_ENGINES:
         raise ValueError("engine must be auto, xtts, or pocket")
 
-    return runtime.generate_cached(text, engine, voice, None, filename)
+    return _to_speech_result(runtime.generate_cached(text, engine, voice, None, filename))
 
 
 @mcp.tool()
@@ -103,7 +153,7 @@ def generate_instagram_voiceover(
     voice: str | None = None,
     engine: str = "xtts",
     filename: str | None = None,
-) -> dict:
+) -> SpeechResult:
     """Generate a native-quality Romanian voiceover for Instagram/Reels content.
 
     Defaults to the XTTS engine for the best pronunciation. Same return shape as

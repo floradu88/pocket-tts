@@ -76,6 +76,9 @@ def preload(primary: bool | None = None, secondary: bool | None = None) -> None:
             xtts_engine.load()
         except Exception as exc:  # noqa: BLE001
             logger.warning("Failed to preload XTTS engine: %s", exc)
+    # Start the generation worker and load the persisted cache index up front so cache stats
+    # are accurate immediately and the queue is warm before the first request.
+    _ensure_worker()
 
 
 def wav_bytes(sample_rate: int, wav: np.ndarray) -> bytes:

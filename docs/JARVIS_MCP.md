@@ -39,6 +39,21 @@ Or run a single container without compose:
 ./deploy/run.ps1 -Detach -Port 8001
 ```
 
+To make it reachable by Jarvis containers, run it directly on the Jarvis Docker network
+(replace `infrastructure_default` with your Jarvis compose network) and point the public
+URL at the service name:
+
+```powershell
+docker run -d --name romanian-tts `
+  --network infrastructure_default -p 8001:8000 `
+  -e ROMANIAN_PUBLIC_BASE_URL=http://romanian-tts:8000 `
+  -e ROMANIAN_PRELOAD_PRIMARY=1 -e ROMANIAN_PRELOAD_SECONDARY=1 -e COQUI_TOS_AGREED=1 `
+  -v pocket_hf_cache:/root/.cache/huggingface `
+  -v pocket_tts_models:/root/.local/share/tts `
+  -v ${PWD}/tts_outputs/romanian_api:/data/outputs `
+  pocket-romanian-tts:latest
+```
+
 First startup downloads the XTTS model (hundreds of MB) and the pocket-tts weights; this
 can take several minutes. The model caches are stored in Docker volumes so subsequent
 starts are fast.
@@ -102,6 +117,8 @@ Each generation tool returns:
 }
 ```
 
+- Every tool declares an output schema, so results arrive as MCP **structured content**
+  (typed JSON) as well as text — Jarvis can consume the fields directly.
 - `cached` is `true` when the audio was served from cache (no regeneration).
 - `cache_key` is the content hash used for de-duplication.
 - The default filename is derived from `cache_key`, so identical requests always map to the
@@ -113,14 +130,16 @@ Jarvis can either download the audio from `url` or read it directly from the sha
 ## 4. Register the tool with Jarvis
 
 Add the MCP server to Jarvis's MCP configuration. The exact file depends on your Jarvis
-setup, but the shape is the standard MCP client config:
+setup, but the shape is the standard MCP client config. When Jarvis runs in Docker, attach
+this container to the same network and use the service name (`romanian-tts:8000`); from the
+host use `localhost:8001`.
 
 ```json
 {
   "mcpServers": {
     "romanian-tts": {
       "type": "http",
-      "url": "http://localhost:8001/mcp"
+      "url": "http://romanian-tts:8000/mcp"
     }
   }
 }
@@ -133,7 +152,7 @@ If your Jarvis MCP client uses the `url`/`transport` style instead:
   "mcpServers": {
     "romanian-tts": {
       "transport": "streamable-http",
-      "url": "http://localhost:8001/mcp"
+      "url": "http://romanian-tts:8000/mcp"
     }
   }
 }

@@ -31,5 +31,7 @@ ENV ROMANIAN_HOST=0.0.0.0 \
 EXPOSE 8000
 
 # Single worker: the models are not thread-safe (generation is serialized by a lock).
-ENTRYPOINT ["uv", "run", "uvicorn", "pocket_tts.romanian.service:romanian_app", \
+# --no-sync: the environment is already synced at build time, so skip the re-sync/reinstall
+# that `uv run` would otherwise do on every container start.
+ENTRYPOINT ["uv", "run", "--no-sync", "uvicorn", "pocket_tts.romanian.service:romanian_app", \
     "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
