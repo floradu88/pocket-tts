@@ -149,6 +149,17 @@ voice, since all built-in pocket-tts voices are non-Romanian. The XTTS-v2 fine-t
 weights are distributed under the Coqui Public Model License (CPML) -- review its terms
 before production use.
 
+### Romanian as a Docker API + MCP service (for agents like Jarvis)
+
+To run Romanian TTS as a container that exposes both a REST API and an MCP endpoint
+(`/mcp`) -- with XTTS as the primary engine and pocket-tts as a fast fallback -- see
+[docs/JARVIS_MCP.md](docs/JARVIS_MCP.md). Quick start (PowerShell):
+
+```powershell
+./deploy/build.ps1
+./deploy/start.ps1 -Build   # API + MCP on http://localhost:8001 (MCP at /mcp)
+```
+
 
 ## Using it as a Python library
 

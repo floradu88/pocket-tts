@@ -9,6 +9,30 @@ services:
     command: ["uv", "run", "pocket-tts", "serve", "--host", "0.0.0.0"]
     restart: unless-stopped
 
+  # Romanian TTS API + MCP server (for agents such as Jarvis).
+  romanian-tts:
+    build:
+      context: .
+      dockerfile: Dockerfile.romanian
+    ports:
+      - "${ROMANIAN_PORT:-8001}:8000"
+    environment:
+      ROMANIAN_DEFAULT_ENGINE: "${ROMANIAN_DEFAULT_ENGINE:-auto}"
+      ROMANIAN_MAX_CHARS: "${ROMANIAN_MAX_CHARS:-1000}"
+      ROMANIAN_CACHE: "${ROMANIAN_CACHE:-1}"
+      ROMANIAN_PRELOAD_PRIMARY: "${ROMANIAN_PRELOAD_PRIMARY:-1}"
+      ROMANIAN_PRELOAD_SECONDARY: "${ROMANIAN_PRELOAD_SECONDARY:-1}"
+      ROMANIAN_OUTPUT_DIR: "/data/outputs"
+      ROMANIAN_PUBLIC_BASE_URL: "${ROMANIAN_PUBLIC_BASE_URL:-http://localhost:8001}"
+      COQUI_TOS_AGREED: "1"
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+      - tts_cache:/root/.local/share/tts
+      # Generated audio is written here and picked up by Instagram tooling on the host.
+      - ./tts_outputs/romanian_api:/data/outputs
+    restart: unless-stopped
+
 volumes:
   pocket_tts_cache:
   hf_cache:
+  tts_cache:

@@ -36,6 +36,15 @@ romanian-xtts = [
     "torchaudio",
     "torchcodec",
 ]
+# Romanian TTS API + MCP server (for agents like Jarvis). Adds the MCP SDK on top of the
+# XTTS stack. fastapi/uvicorn are already core dependencies.
+romanian-api = [
+    "coqui-tts>=0.25.0",
+    "transformers>=4.57,<5",
+    "torchaudio",
+    "torchcodec",
+    "mcp>=1.2.0",
+]
 
 
 [dependency-groups]

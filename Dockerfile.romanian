@@ -1,0 +1,35 @@
+# Romanian TTS API + MCP server image.
+# Primary engine: XTTS-v2 Romanian fine-tune (native pronunciation).
+# Secondary engine: pocket-tts Italian base (fast fallback).
+FROM ghcr.io/astral-sh/uv:debian
+
+WORKDIR /app
+
+# ffmpeg backs torch/torchcodec audio IO; the engines also have a soundfile fallback.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY ./pyproject.toml ./uv.lock ./README.md ./.python-version ./
+COPY ./pocket_tts ./pocket_tts
+
+# Coqui XTTS is gated behind a non-commercial license prompt; accept it non-interactively.
+ENV COQUI_TOS_AGREED=1
+
+# Install core deps + the Romanian API extra (XTTS stack + MCP SDK).
+RUN uv sync --extra romanian-api
+
+# Runtime configuration (override via compose / -e).
+ENV ROMANIAN_HOST=0.0.0.0 \
+    ROMANIAN_PORT=8000 \
+    ROMANIAN_DEFAULT_ENGINE=auto \
+    ROMANIAN_OUTPUT_DIR=/data/outputs \
+    ROMANIAN_CACHE=1 \
+    ROMANIAN_PRELOAD_SECONDARY=1 \
+    ROMANIAN_PRELOAD_PRIMARY=0
+
+EXPOSE 8000
+
+# Single worker: the models are not thread-safe (generation is serialized by a lock).
+ENTRYPOINT ["uv", "run", "uvicorn", "pocket_tts.romanian.service:romanian_app", \
+    "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
