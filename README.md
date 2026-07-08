@@ -105,6 +105,51 @@ You can check out the [serve documentation](https://kyutai-labs.github.io/pocket
 Processing an audio file (e.g., a .wav or .mp3) for voice cloning is relatively slow, but loading a safetensors file -- a voice embedding converted from an audio file -- is very fast. You can use the `export-voice` command to do this conversion. See the [export-voice documentation](https://kyutai-labs.github.io/pocket-tts/CLI%20Commands/export_voice/) for more details and examples.
 
 
+## Romanian (experimental / community)
+
+Kyutai does not ship a Romanian pocket-tts model. There is no language-conditioning
+input in pocket-tts, so "adding Romanian" means either reusing another model or bolting
+on a different engine. Two community paths are provided; both run on CPU.
+
+### Path A - fast, in-repo, approximate (Italian base model)
+
+Reuses the Italian model + Italian tokenizer via a `romanian` config, and rewrites
+Romanian-specific letters (`ă â î ș ț`) into sequences the Italian tokenizer can
+pronounce. This runs at pocket-tts's usual CPU speed but is **Italian-accented Romanian**,
+not native pronunciation. Use a Romanian voice clip with `--voice` for a Romanian accent.
+
+```bash
+# CLI (uses the built-in Romanian phrase and the giovanni fallback voice):
+uvx pocket-tts generate --language romanian
+
+# Helper script with diacritic normalization and a cloned Romanian voice:
+uv run python scripts/generate_romanian.py \
+    --text "Bună ziua, ce mai faceți?" \
+    --voice path/to/romanian_clone.wav
+```
+
+Note: `pocket-tts generate --language romanian` does not itself normalize diacritics;
+use `scripts/generate_romanian.py` (or pre-normalize your text) for the best result.
+
+### Path B - genuine Romanian, slower (community XTTS-v2 fine-tune)
+
+For real native Romanian pronunciation with voice cloning, use a community XTTS-v2
+fine-tune. This is a separate, heavier engine. On CPU it runs at roughly real-time at
+best (a GPU is recommended but not required).
+
+```bash
+uv pip install -e ".[romanian-xtts]"
+uv run python scripts/generate_romanian_xtts.py \
+    --text "Bună ziua, acesta este un test în limba română." \
+    --speaker-wav path/to/romanian_reference.wav
+```
+
+Both paths need a short Romanian reference clip (~10-30s WAV) for a Romanian-sounding
+voice, since all built-in pocket-tts voices are non-Romanian. The XTTS-v2 fine-tune
+weights are distributed under the Coqui Public Model License (CPML) -- review its terms
+before production use.
+
+
 ## Using it as a Python library
 
 You can try out the Python library on Colab [here](https://colab.research.google.com/github/kyutai-labs/pocket-tts/blob/main/docs/pocket-tts-example.ipynb).

@@ -26,6 +26,16 @@ dependencies = [
 [project.optional-dependencies]
 audio = ["soundfile>=0.12.0"]
 quantize = ["torchao>=0.16.0"]
+# Path B: genuine local Romanian via a community XTTS-v2 fine-tune. Heavy deps; runs on
+# CPU but slowly (GPU recommended). Used only by scripts/generate_romanian_xtts.py.
+# transformers is pinned < 5 because coqui-tts still imports symbols removed in 5.x
+# (e.g. isin_mps_friendly). torchaudio + torchcodec provide audio IO for torch >= 2.9.
+romanian-xtts = [
+    "coqui-tts>=0.25.0",
+    "transformers>=4.57,<5",
+    "torchaudio",
+    "torchcodec",
+]
 
 
 [dependency-groups]

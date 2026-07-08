@@ -38,6 +38,13 @@ DEFAULT_TEXT_FOR_LANGUAGE = {
         "Soy lo suficientemente rápido para funcionar en pequeñas CPU. "
         "Espero que te guste."
     ),
+    # Romanian has no dedicated pocket-tts model; it is generated with the Italian
+    # base model (see pocket_tts/config/romanian.yaml).
+    "romanian": (
+        "Salut lume. Sunt Pocket TTS de la Kyutai. "
+        "Sunt suficient de rapid ca să rulez pe procesoare mici. "
+        "Sper să mă placi."
+    ),
 }
 
 DEFAULT_VOICE_FOR_LANGUAGE = {
@@ -46,6 +53,9 @@ DEFAULT_VOICE_FOR_LANGUAGE = {
     "german": "juergen",
     "portuguese": "rafael",
     "french": "estelle",
+    # No Romanian built-in voice exists; giovanni (Italian) is the closest fallback.
+    # Override with --voice <romanian_clone.wav> for a genuine Romanian accent.
+    "romanian": "giovanni",
 }
 DEFAULT_VOICE_FALLBACK = "alba"
 
